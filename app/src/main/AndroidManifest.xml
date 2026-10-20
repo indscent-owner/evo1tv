@@ -4,7 +4,7 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <application
-        android:label="EV01"
+        android:label="EVO Stream"
         android:icon="@drawable/icon"
         android:banner="@drawable/banner"
         android:allowBackup="false"

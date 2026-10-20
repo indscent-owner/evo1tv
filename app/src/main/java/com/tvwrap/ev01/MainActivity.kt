@@ -48,7 +48,7 @@ class MainActivity : Activity() {
         assets.open("hosts.txt").bufferedReader().useLines { ls ->
             ls.map { it.trim().lowercase() }.filter { it.isNotEmpty() && !it.startsWith("#") }.forEach { blocked.add(it) }
         }
-        navJs = assets.open("nav.js").bufferedReader().readText()
+        navJs = assets.open("evo.js").bufferedReader().readText()
         root = FrameLayout(this)
         web = WebView(this)
         root.addView(web, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -153,6 +153,10 @@ class MainActivity : Activity() {
             (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(web, 0)
         }
         @JavascriptInterface fun showOptions(json: String) = runOnUiThread { showGroups(json) }
+        @JavascriptInterface fun setImmersive(on: Boolean) = runOnUiThread { immersive(on) }
+        @JavascriptInterface fun tap(x: Double, y: Double, delay: Int) {
+            web.postDelayed({ tapCss(x.toFloat(), y.toFloat()) }, delay.toLong())
+        }
     }
 
     // ---------- Remote navigation ----------
@@ -166,6 +170,9 @@ class MainActivity : Activity() {
             }
         }
     }
+
+    @Suppress("DEPRECATION")
+    private fun tapCss(x: Float, y: Float) = tap(x * web.scale, y * web.scale)
 
     private fun tap(x: Float, y: Float) {
         val t = SystemClock.uptimeMillis()
@@ -210,8 +217,9 @@ class MainActivity : Activity() {
         when {
             customView != null -> chrome.onHideCustomView()
             editing -> blurInput()
-            web.canGoBack() -> web.goBack()
-            else -> super.onBackPressed()
+            else -> web.evaluateJavascript("window.__evoBack?__evoBack():false") { r ->
+                if (r != "true") { if (web.canGoBack()) web.goBack() else finish() }
+            }
         }
     }
 

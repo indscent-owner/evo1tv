@@ -6,11 +6,11 @@ android {
     namespace = "com.tvwrap.ev01"
     compileSdk = 34
     defaultConfig {
-        applicationId = "com.tvwrap.ev01"
+        applicationId = "com.tvwrap.evostream"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.2"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
