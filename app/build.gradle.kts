@@ -9,12 +9,15 @@ android {
         applicationId = "com.tvwrap.evostream"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 1061
+        versionName = "1.0.6.1"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+}
+dependencies {
+    implementation("androidx.webkit:webkit:1.11.0")
 }
