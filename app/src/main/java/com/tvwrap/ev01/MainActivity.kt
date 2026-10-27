@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.UiModeManager
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
@@ -173,7 +175,7 @@ class MainActivity : Activity() {
                 val h = u.host?.lowercase() ?: return true
                 if (isBlocked(h)) return true
                 if (analyzing) return false
-                return !sameSite(h)
+                return !sameSite(h) && !r.isRedirect
             }
 
             override fun onPageStarted(v: WebView?, url: String?, f: android.graphics.Bitmap?) {
@@ -184,6 +186,13 @@ class MainActivity : Activity() {
 
             override fun onPageFinished(v: WebView?, url: String?) {
                 if (analyzing && url != null) lastUrl = url
+                // the site moved to a mirror domain via redirect: follow it and remember it
+                val nh = try { Uri.parse(url ?: "").host?.lowercase() } catch (e: Exception) { null }
+                if (!analyzing && nh != null && siteUrl.isNotEmpty() && !sameSite(nh) && !isBlocked(nh)) {
+                    siteUrl = "${Uri.parse(url).scheme}://$nh/"
+                    prefs.edit().putString("site", siteUrl).apply()
+                    setSiteHost()
+                }
                 web.evaluateJavascript(evoJs, null)
             }
 
@@ -349,6 +358,7 @@ class MainActivity : Activity() {
             "Site: ${if (siteHost.isEmpty()) "(none)" else siteHost}  \u2013  change",
             "Re-scan this site",
             "Subtitles by default: ${if (subsOff) "Off" else "On"}  (tap to switch)",
+            "Copy site report (to send to support)",
             "Clear cookies and cache",
             "About EVO Stream $ver"
         )
@@ -357,13 +367,22 @@ class MainActivity : Activity() {
                 0 -> wizWelcome()
                 1 -> { if (siteUrl.isNotEmpty()) web.loadUrl(siteUrl) }
                 2 -> { prefs.edit().putString("subsOff", if (subsOff) "0" else "1").apply(); Toast.makeText(this, "Subtitles default: ${if (subsOff) "On" else "Off"}", Toast.LENGTH_SHORT).show() }
-                3 -> {
+                3 -> web.evaluateJavascript("window.__evoReport?__evoReport():null") { r ->
+                    var txt: String? = null
+                    try { if (r != null && r != "null") { val v = JSONTokener(r).nextValue(); if (v is String) txt = v } } catch (_: Exception) {}
+                    if (txt == null) Toast.makeText(this, "No report available yet - wait for the page to load", Toast.LENGTH_LONG).show()
+                    else {
+                        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("EVO report", txt))
+                        Toast.makeText(this, "Report copied - paste it into the chat", Toast.LENGTH_LONG).show()
+                    }
+                }
+                4 -> {
                     CookieManager.getInstance().removeAllCookies(null)
                     WebStorage.getInstance().deleteAllData()
                     web.clearCache(true); web.clearHistory()
                     Toast.makeText(this, "Cleared", Toast.LENGTH_SHORT).show()
                 }
-                4 -> Toast.makeText(this, "EVO Stream $ver", Toast.LENGTH_LONG).show()
+                5 -> Toast.makeText(this, "EVO Stream $ver", Toast.LENGTH_LONG).show()
             }
         }.show()
     }
@@ -410,7 +429,7 @@ class MainActivity : Activity() {
 
     private fun wizWelcome(err: String? = null) {
         analyzing = false
-        if (err == null) wInput.setText(siteHost)
+        if (err == null) wInput.setText(if (siteHost.isNotEmpty()) siteHost else "fmovies.org")
         wizShow(
             "EVO Stream setup",
             (if (err != null) "$err\n\n" else "") +

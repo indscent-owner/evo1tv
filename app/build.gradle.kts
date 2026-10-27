@@ -9,8 +9,8 @@ android {
         applicationId = "com.tvwrap.evostream"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1061
-        versionName = "1.0.6.1"
+        versionCode = 1062
+        versionName = "1.0.6.2"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
